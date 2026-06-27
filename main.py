@@ -126,16 +126,19 @@ async def single_pokemon_func_w_rate_limiting():
     # creating semphore object
     semaphore = asyncio.Semaphore(max_concurrant_requests)
 
-    async def fetch_single_item(session: aiohttp.ClientSession, id: int, semaphore: asyncio.Semaphore) -> None:
+    async def fetch_single_item(session: aiohttp.ClientSession, id: int, semaphore: asyncio.Semaphore) -> str:
         url: str = f"https://pokeapi.co/api/v2/pokemon/{id}/"
         try: 
-            async with session.get(url) as response:
-                data = await response.json()
-                return data["name"]
-        except ConnectionError as e:
+            async with semaphore:
+                async with session.get(url) as response:
+                    data = await response.json()
+                    return data["name"]
+        except aiohttp.ClientError as e:
             print(f"You have encountered a connection Error: {e}")
+            return f"Failed id: {id}"
         except Exception as e:
             print(f"You have encountered a connection Error: {e}")
+            return f"Failed id: {id}"
 
 
     async with aiohttp.ClientSession() as session:
