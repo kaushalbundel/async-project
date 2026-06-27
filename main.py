@@ -57,14 +57,48 @@ async def main():
 # 2. Opening new sessions for every new request defeats the purpose of async, so that should be avoided as well
 
 
+# async def single_pokemon_func():
+#     start_time = time.time()
+
+#     async def fetch_single_item(session, id):
+#         url = f"https://pokeapi.co/api/v2/pokemon/{id}/"
+#         async with session.get(url) as response:
+#             data = await response.json()
+#             return data["name"]
+
+#     async with aiohttp.ClientSession() as session:
+#         tasks = [fetch_single_item(session, id) for id in range(1, 51)]
+#         result = await asyncio.gather(*tasks)
+#     print(f"The first 5 elements are: {result[:5]}")
+#     print(f"Time to result: {time.time() - start_time} ms")
+
+
+# if __name__ == "__main__":
+#     asyncio.run(single_pokemon_func())
+
+# On meta level following steps are needed to create an async function
+# 1. One should know which operation should be async based
+# 2. We need to think in terms of tasks. Tasks are indvidual operations that use async to optimize their working.
+# 2.1 One should define an individual task using async
+# 2.2 Since the operation is async it has bound to be many such tasks running. These tasks should be aggregate together and run asynchroniously
+
+
+# refactoring the code using types and adding error validation
+# We can use the class object from where the class is taken to annotate the type
 async def single_pokemon_func():
     start_time = time.time()
 
-    async def fetch_single_item(session, id):
+    async def fetch_single_item(session: aiohttp.ClientSession, id: int) -> None:
         url = f"https://pokeapi.co/api/v2/pokemon/{id}/"
-        async with session.get(url) as response:
-            data = await response.json()
-            return data["name"]
+        try: 
+            async with session.get(url) as response:
+                data = await response.json()
+                return data["name"]
+        except ConnectionError as e:
+            print(f"You have encountered a connection Error: {e}")
+        except Exception as e:
+            print(f"You have encountered a connection Error: {e}")
+
 
     async with aiohttp.ClientSession() as session:
         tasks = [fetch_single_item(session, id) for id in range(1, 51)]
@@ -75,9 +109,3 @@ async def single_pokemon_func():
 
 if __name__ == "__main__":
     asyncio.run(single_pokemon_func())
-
-# On meta level following steps are needed to create an async function
-# 1. One should know which operation should be async based
-# 2. We need to think in terms of tasks. Tasks are indvidual operations that use async to optimize their working.
-# 2.1 One should define an individual task using async
-# 2.2 Since the operation is async it has bound to be many such tasks running. These tasks should be aggregate together and run asynchroniously
