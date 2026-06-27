@@ -89,7 +89,7 @@ async def single_pokemon_func():
     start_time = time.time()
 
     async def fetch_single_item(session: aiohttp.ClientSession, id: int) -> None:
-        url = f"https://pokeapi.co/api/v2/pokemon/{id}/"
+        url: str = f"https://pokeapi.co/api/v2/pokemon/{id}/"
         try: 
             async with session.get(url) as response:
                 data = await response.json()
@@ -107,5 +107,43 @@ async def single_pokemon_func():
     print(f"Time to result: {time.time() - start_time} ms")
 
 
+# if __name__ == "__main__":
+#     asyncio.run(single_pokemon_func())
+
+# Scripts with Rate Limiting
+# Why Rate limiting?
+# A server can hypothetically handle many requests but it should not handle too many such requests. If too many requests are centered around the server:
+# 1. The server might block your IP address over a concern over DDoS (Distributed Denials of Service) attack. 
+# 2. Since multiple requests required multiple sockets to run, it could crash even the machine as well. 
+
+# To avoid this asyncio uses Semaphore  (Semaphore is a visual signalling across a distance. Refer the flags that were used earlier to signal an approaching enemy or fire.)
+# A semaphore essentially tell the client about maximum concurrent calls that would be coming from client to the server. 
+
+
+async def single_pokemon_func_w_rate_limiting():
+    start_time = time.time()
+    max_concurrant_requests: int = 100
+    # creating semphore object
+    semaphore = asyncio.Semaphore(max_concurrant_requests)
+
+    async def fetch_single_item(session: aiohttp.ClientSession, id: int, semaphore: asyncio.Semaphore) -> None:
+        url: str = f"https://pokeapi.co/api/v2/pokemon/{id}/"
+        try: 
+            async with session.get(url) as response:
+                data = await response.json()
+                return data["name"]
+        except ConnectionError as e:
+            print(f"You have encountered a connection Error: {e}")
+        except Exception as e:
+            print(f"You have encountered a connection Error: {e}")
+
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_single_item(session, id, semaphore=semaphore) for id in range(1, 120)]
+        result = await asyncio.gather(*tasks)
+    print(f"The first 5 elements are: {result[:5]}")
+    print(f"Time to result: {time.time() - start_time} ms")
+    print(result)
+
 if __name__ == "__main__":
-    asyncio.run(single_pokemon_func())
+    asyncio.run(single_pokemon_func_w_rate_limiting())
